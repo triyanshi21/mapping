@@ -1,0 +1,142 @@
+{
+    "name": "PL_DynamicMapping",
+    "properties": {
+        "activities": [
+            {
+                "name": "Get Metadata1",
+                "type": "GetMetadata",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "ds_demo",
+                        "type": "DatasetReference"
+                    },
+                    "fieldList": [
+                        "childItems"
+                    ],
+                    "storeSettings": {
+                        "type": "AzureBlobStorageReadSettings",
+                        "enablePartitionDiscovery": false
+                    }
+                }
+            },
+            {
+                "name": "ForEach1",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Get Metadata1",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Get Metadata1').output.childItems",
+                        "type": "Expression"
+                    },
+                    "isSequential": true,
+                    "activities": [
+                        {
+                            "name": "Copy data1",
+                            "type": "Copy",
+                            "dependsOn": [
+                                {
+                                    "activity": "Lookup1",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "ExcelSource",
+                                    "storeSettings": {
+                                        "type": "AzureBlobStorageReadSettings",
+                                        "recursive": true,
+                                        "enablePartitionDiscovery": false
+                                    }
+                                },
+                                "sink": {
+                                    "type": "AzureSqlSink"
+                                },
+                                "enableStaging": false,
+                                "translator": {
+                                    "type": "TabularTranslator",
+                                    "typeConversion": true,
+                                    "typeConversionSettings": {
+                                        "allowDataTruncation": true,
+                                        "treatBooleanAsNumber": false
+                                    }
+                                }
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "ds_dynamicsheet",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "FileName": "@activity('Lookup1').output.firstRow.sourceFile"
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "ds_dynamictbl",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "schema": "@activity('Lookup1').output.firstRow.sinkTableSchema",
+                                        "tableName": "@activity('Lookup1').output.firstRow.sinkTableName"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Lookup1",
+                            "type": "Lookup",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "AzureSqlSource",
+                                    "sqlReaderQuery": "select*from columnmappings where sourceFile='@{item().name}'",
+                                    "queryTimeout": "02:00:00",
+                                    "partitionOption": "None"
+                                },
+                                "dataset": {
+                                    "referenceName": "AzureSqlTable1",
+                                    "type": "DatasetReference"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "annotations": []
+    }
+}
